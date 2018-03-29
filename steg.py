@@ -23,7 +23,7 @@ wr = wave.open('audio.wav', 'r')
 par = list(wr.getparams())
 par[3] = 0  # The number of samples will be set by writeframes.
 par = tuple(par)
-ww = wave.open('pitch1.wav', 'w')
+ww = wave.open('test.wav', 'w')
 ww.setparams(par)
 
 fr = 20
@@ -71,7 +71,7 @@ for i in binMessage:
 wr.close()
 ww.close()
 
-wr = wave.open('pitch1.wav', 'r')
+wr = wave.open('test.wav', 'r')
 
 fr = 20
 sz = wr.getframerate()//fr  # Read and process 1/fr second at a time.
