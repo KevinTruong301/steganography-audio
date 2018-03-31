@@ -17,90 +17,107 @@ def bin2text(bin):
     text=z.decode('ascii')
     return text
 
+def encode(audioFile):
+    wr = wave.open(audioFile, 'r')
+    # Set the parameters for the output file.
+    print(audioFile)
+    par = list(wr.getparams())
+    par[3] = 0  # The number of samples will be set by writeframes.
+    par = tuple(par)
+    ww = wave.open(str(audioFile)[:-4] + "_encoded.wav" , 'w')
+    ww.setparams(par)
 
-wr = wave.open('audio.wav', 'r')
-# Set the parameters for the output file.
-par = list(wr.getparams())
-par[3] = 0  # The number of samples will be set by writeframes.
-par = tuple(par)
-ww = wave.open('test.wav', 'w')
-ww.setparams(par)
+    fr = 20
+    sz = wr.getframerate()//fr  # Read and process 1/fr second at a time.
+    # A larger number for fr means less reverb.
+    c = int(wr.getnframes()/sz)  # count of the whole file
+    print(c)
+    shift = 0//fr  # shifting 100 Hz
 
-fr = 20
-sz = wr.getframerate()//fr  # Read and process 1/fr second at a time.
-# A larger number for fr means less reverb.
-c = int(wr.getnframes()/sz)  # count of the whole file
-shift = 0//fr  # shifting 100 Hz
+    message = sys.argv[3]
+    print(message)
+    binMessage = text2bin(message)
 
-message = sys.argv[1]
+    binLength = text2bin(str(len(binMessage)))
 
-binMessage = text2bin(message)
+    count = 0
+    print(len(binMessage))
+    #encode length
 
-binLength = text2bin(str(len(binMessage)))
+    if(c < len(binMessage) + 32):
+        print("Audio file not large enough for message")
+        exit()
 
-count = 0
-print(len(binMessage))
-#encode length
+    for i in range(32 - len(binLength)):
+        da = np.fromstring(wr.readframes(sz), dtype=np.int32)
+        print(da)
+        b = text2bin(str(da[0]))
+        b = b[:len(b) -1] + '0'
+        B = bin2text(b)
+        da[0] = int(B)
+        ww.writeframes(da.tostring())
 
-for i in range(32 - len(binLength)):
-    da = np.fromstring(wr.readframes(sz), dtype=np.int32)
-    b = text2bin(str(da[0]))
-    b = b[:len(b) -1] + '0'
-    B = bin2text(b)
-    da[0] = int(B)
-    ww.writeframes(da.tostring())
+    for i in binLength:
+        da = np.fromstring(wr.readframes(sz), dtype=np.int32)
+        b = text2bin(str(da[0]))
+        b = b[:len(b) -1] + i
+        B = bin2text(b)
+        da[0] = int(B)
+        ww.writeframes(da.tostring())
 
-for i in binLength:
-    da = np.fromstring(wr.readframes(sz), dtype=np.int32)
-    b = text2bin(str(da[0]))
-    b = b[:len(b) -1] + i
-    B = bin2text(b)
-    da[0] = int(B)
-    ww.writeframes(da.tostring())
+    for i in binMessage:
+        da = np.fromstring(wr.readframes(sz), dtype=np.int32)
+        b = text2bin(str(da[0]))
+        b = b[:len(b) -1] + i
+        B = bin2text(b)
+        da[0] = int(B)
+        ww.writeframes(da.tostring())
+    
+    for i in range(c - 32 - len(binMessage)):
+        da = np.fromstring(wr.readframes(sz), dtype=np.int32)
+        ww.writeframes(da.tostring())
 
-for i in binMessage:
-    da = np.fromstring(wr.readframes(sz), dtype=np.int32)
-    b = text2bin(str(da[0]))
-    b = b[:len(b) -1] + i
-    B = bin2text(b)
-    da[0] = int(B)
-    ww.writeframes(da.tostring())
+    wr.close()
+    ww.close()
+
+def decode(audioFile):
+    wr = wave.open(audioFile, 'r')
+
+    fr = 20
+    sz = wr.getframerate()//fr  # Read and process 1/fr second at a time.
+    # A larger number for fr means less reverb.
+    c = int(wr.getnframes()/sz)  # count of the whole file
+    shift = 0//fr  # shifting 100 Hz
+
+    length = ""
+
+    for i in range(32):
+        da = np.fromstring(wr.readframes(sz), dtype=np.int32)
+        b = text2bin(str(da[0]))
+        length += b[-1:]
+
+    length = int(bin2text(length))
+
+    message = ""
+    for i in range(length):
+        da = np.fromstring(wr.readframes(sz), dtype=np.int32)
+        b = text2bin(str(da[0]))
+        message += b[-1:]
+
+    message = bin2text(message)
+    print (message)
+    wr.close()
 
 
+if(sys.argv[1] == '-e'):
+    encode(sys.argv[2])
 
-wr.close()
-ww.close()
+if(sys.argv[1] == '-d'):
+    decode(sys.argv[2])
 
-wr = wave.open('test.wav', 'r')
+# CHUNK = 1024
 
-fr = 20
-sz = wr.getframerate()//fr  # Read and process 1/fr second at a time.
-# A larger number for fr means less reverb.
-c = int(wr.getnframes()/sz)  # count of the whole file
-shift = 0//fr  # shifting 100 Hz
-
-length = ""
-
-for i in range(32):
-    da = np.fromstring(wr.readframes(sz), dtype=np.int32)
-    b = text2bin(str(da[0]))
-    length += b[-1:]
-
-length = int(bin2text(length))
-
-message = ""
-for i in range(length):
-    da = np.fromstring(wr.readframes(sz), dtype=np.int32)
-    b = text2bin(str(da[0]))
-    message += b[-1:]
-
-message = bin2text(message)
-print (message)
-wr.close()
-
-#CHUNK = 1024
-
-# wf = wave.open('pitch1.wav', 'rb')
+# wf = wave.open('test.wav', 'rb')
 
 # # instantiate PyAudio (1)
 # p = pyaudio.PyAudio()
